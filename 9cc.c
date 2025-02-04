@@ -64,14 +64,6 @@ bool consume(char op) {
 	return true;
 }
 
-// 次のトークンが期待している記号の時は、トークンを進めて、
-// それ以外の場合はエラーを返す。
-void expect_symbol(char op) {
-	if (token->kind != TK_RESERVED || token->str[0] != op) {
-	}
-	token = token->next;
-}
-
 // 次のトークンが数値の場合、トークンを進め、その値を返す。
 // それ以外ならば、エラーを返す。
 int expect_number() {
@@ -84,6 +76,7 @@ int expect_number() {
 	return val;
 }
 
+// EOFなのかを判断
 bool at_eof() {
 	return token->kind == TK_EOF;
 }
