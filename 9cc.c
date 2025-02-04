@@ -5,6 +5,25 @@
 #include <stdlib.h>
 #include <string.h>
 
+// 入力プログラム
+char *user_input;
+
+// エラー箇所の報告
+void error_at(char *loc, char *fmt, ...) {
+	va_list ap;
+	va_start(ap, fmt);
+
+	int pos = loc - user_input;
+
+	fprintf(stderr, "%s\n", user_input);
+	fprintf(stderr, "%*s", pos, " ");
+	fprintf(stderr, "^ ");
+	vfprintf(stderr, fmt, ap);
+	fprintf(stderr, "\n");
+	
+	exit(1);
+}
+
 // トークンの種類
 typedef enum {
 	TK_RESERVED,		// 記号
@@ -49,7 +68,6 @@ bool consume(char op) {
 // それ以外の場合はエラーを返す。
 void expect_symbol(char op) {
 	if (token->kind != TK_RESERVED || token->str[0] != op) {
-		error("Current token is not '%c'.", op);
 	}
 	token = token->next;
 }
@@ -58,7 +76,7 @@ void expect_symbol(char op) {
 // それ以外ならば、エラーを返す。
 int expect_number() {
 	if (token->kind != TK_NUM) {
-		error("Current token is not a number");
+		error_at(token->str, "Current token is not a number");
 	}
 	int val = token->val;
 	token = token->next;
@@ -90,7 +108,7 @@ Token *tokenize(char *p) {
 			continue;
 		}
 
-		if (*p == '+' || *p == '-') {
+		if ((*p=='+') || (*p=='-') || (*p=='&') || (*p=='|') || (*p=='^')) {
 			cur = new_token(TK_RESERVED, cur, p++);
 			continue;
 		}
@@ -101,7 +119,7 @@ Token *tokenize(char *p) {
 			continue;
 		}
 
-		error("Cannot Tokenize.");
+		error_at(token->str, "Cannot Tokenize.");
 	}
 
 	new_token(TK_EOF, cur, p);
@@ -109,18 +127,20 @@ Token *tokenize(char *p) {
 	return head.next;
 }
 
+
 int main(int argc, char *argv[]) {
+	printf(".intel_syntax noprefix\n");
+	printf(".globl main\n");
+	printf("main:\n");
+
+	user_input = argv[1];
 	if (argc != 2) {
-		error("Not corrently numbers of arguments.");
+		error_at(token->str, "Not corrently numbers of arguments.");
 		return 1;
 	}
 
 	// トークナイズ
 	token = tokenize(argv[1]);
-
-	printf(".intel_syntax noprefix\n");
-	printf(".globl main\n");
-	printf("main:\n");
 
 	printf("	mov rax, %d\n", expect_number());
 
@@ -128,9 +148,21 @@ int main(int argc, char *argv[]) {
 		if (consume('+')) {
 			printf("	add rax, %d\n", expect_number());
 			continue;
+		} else if (consume('-')) {
+			printf("	sub	rax, %d\n", expect_number());
+			continue;
+		} else if (consume('&')) {
+			printf("	and rax, %d\n", expect_number());
+			continue;
+		} else if (consume('|')) {
+			printf("	or rax, %d\n", expect_number());
+			continue;
+		} else if (consume('^')) {
+			printf("	xor rax, %d\n", expect_number());
+			continue;
 		}
-		expect_symbol('-');
-		printf("	sub	rax, %d\n", expect_number());
+
+		error_at(token->str, "Current token is not '%c'.", token->str[0]);
 	}
 
 	printf("	ret \n");
