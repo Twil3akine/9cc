@@ -39,6 +39,7 @@ struct Token {
 	Token *next;
 	int val;
 	char *str;
+	int len;
 };
 
 // 現在見ているトークン
@@ -56,8 +57,10 @@ void error(char *fmt, ...) {
 
 // 次のトークンが期待している記号ならば、トークンを進めて
 // True を返し、それ以外ならば、False を返す。
-bool consume(char op) {
-	if (token->kind != TK_RESERVED || token->str[0] != op) {
+bool consume(char *op) {
+	if (token->kind != TK_RESERVED ||
+		  strlen(op) != token->len ||
+			memcmp(token->str, op, token->len)) {
 		return false;
 	}
 	token = token->next;
@@ -66,9 +69,11 @@ bool consume(char op) {
 
 // 次のトークンが記号の場合、トークンを進める。
 // それ以外の場合は、エラーを返す。
-void expect_symbol(char op) {
-	if (token->kind != TK_RESERVED || token->str[0] != op) {
-		error("Current operation is not'%c'.", op);
+void expect_symbol(char *op) {
+	if (token->kind != TK_RESERVED ||
+		  strlen(op) != token->len ||
+			memcmp(token->str, op, token->len)) {
+		error_at(token->str, "expected \"%s\"", op);
 	}
 	token = token->next;
 }
@@ -90,13 +95,18 @@ bool at_eof() {
 	return token->kind == TK_EOF;
 }
 
-Token *new_token(TokenKind kind, Token *cur, char *str) {
+Token *new_token(TokenKind kind, Token *cur, char *str, int len) {
 	Token *tok = calloc(1, sizeof(Token));
 	tok->kind = kind;
 	tok->str = str;
+	tok->len = len;
 	cur->next = tok;
 
 	return tok;
+}
+
+bool startswith(char *p, char *q) {
+	return memcmp(p, q, strlen(q)) == 0;
 }
 
 Token *tokenize(char *p) {
@@ -110,21 +120,33 @@ Token *tokenize(char *p) {
 			continue;
 		}
 
-		if ((*p=='+') || (*p=='-') || (*p=='&') || (*p=='|') || (*p=='^') || (*p=='*') || (*p=='/') || (*p=='(') || (*p==')')) {
-			cur = new_token(TK_RESERVED, cur, p++);
+		// 複数文字記号
+		if (startswith(p, "==") || startswith(p, "!=") ||
+			  startswith(p, "<=") || startswith(p, ">=")) {
+			cur = new_token(TK_RESERVED, cur, p, 2);
+			p += 2;
 			continue;
 		}
 
+		// 単文字記号
+		if (strchr("+-*/()&|^<>", *p)) {
+			cur = new_token(TK_RESERVED, cur, p++, 1);
+			continue;
+		}
+		
+		// 数字
 		if (isdigit(*p)) {
-			cur = new_token(TK_NUM, cur, p);
+			cur = new_token(TK_NUM, cur, p, 0);
+			char *q = p;
 			cur->val = strtol(p, &p, 10);
+			cur->len = p - q;
 			continue;
 		}
 
 		error_at(token->str, "Cannot Tokenize.");
 	}
 
-	new_token(TK_EOF, cur, p);
+	new_token(TK_EOF, cur, p, 0);
 
 	return head.next;
 }
@@ -138,6 +160,10 @@ typedef enum {
 	ND_AND, // &
 	ND_OR , // |
 	ND_XOR, // ^
+	ND_EQ , // ==
+	ND_NE , // !=
+	ND_LT , // <
+	ND_LE , // <=
 	ND_NUM, // 整数
 } NodeKind;
 
@@ -151,57 +177,68 @@ struct Node {
 	int val;
 };
 
-Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
+Node *new_node(NodeKind kind) {
 	Node *node = calloc(1, sizeof(Node));
 	node->kind = kind;
+
+	return node;
+}
+
+Node *new_binary(NodeKind kind, Node *lhs, Node *rhs) {
+	Node *node = new_node(kind);
 	node->lhs = lhs;
 	node->rhs = rhs;
 
 	return node;
 }
 
-Node *new_node_num(int val) {
-	Node *node = calloc(1, sizeof(Node));
-	node->kind = ND_NUM;
+Node *new_num(int val) {
+	Node *node = new_node(ND_NUM);
 	node->val = val;
 
 	return node;
 }
 
 /*
- or      = xor ('|' xor)*
- xor     = and ('^' and)*
- and     = expr ('&' expr)*
- expr    = mul ('+' mul | '-' mul)*
- mul     = unary ('*' unary | '/' unary)*
- unary   = ('+' | '-')? primary
- primary = num | '(' or ')'
+ expr       = or
+ or         = xor ('|' xor)*
+ xor        = and ('^' and)*
+ equality   = relational ('==' relational | '!=' relational)*
+ relational = add ('<' add | '<=' add | '>' add | '>=' add)*
+ and        = add ('&' add)*
+ add        = mul ('+' mul | '-' mul)*
+ mul        = unary ('*' unary | '/' unary)*
+ unary      = ('+' | '-')? primary
+ primary    = num | '(' or ')'
  */
 
 Node *primary();
 Node *unary();
 Node *mul();
-Node *expr();
+Node *add();
+Node *relational();
+Node *equality();
 Node *and();
 Node *xor();
 Node *or();
+Node *expr();
 
 Node *primary() {
 	// 次トークンが '(' -> ')' になるはず
-	if (consume('(')) {
+	if (consume("(")) {
 		Node *node = or();
-		expect_symbol(')');
+		expect_symbol(")");
 		return node;
 	}
 	// でないなら、数値になるはず
-	return new_node_num(expect_number());
+	return new_num(expect_number());
 }
 
 Node *unary() {
-	if (consume('+')) {
-		return primary();
-	} else if (consume('-')) {
-		return new_node(ND_SUB, new_node_num(0), primary());
+	if (consume("+")) {
+		return unary();
+	} else if (consume("-")) {
+		return new_binary(ND_SUB, new_num(0), unary());
 	}
 	return primary();
 }
@@ -209,23 +246,54 @@ Node *unary() {
 Node *mul() {
 	Node *node = unary();
 	for (;;) {
-		if (consume('*')) {
-			node = new_node(ND_MUL, node, unary());
-		} else if (consume('/')) {
-			node = new_node(ND_DIV, node, unary());
+		if (consume("*")) {
+			node = new_binary(ND_MUL, node, unary());
+		} else if (consume("/")) {
+			node = new_binary(ND_DIV, node, unary());
 		} else {
 			return node;
 		}
 	}
 }
 
-Node *expr() {
+Node *add() {
 	Node *node = mul();
 	for (;;) {
-		if (consume('+')) {
-			node = new_node(ND_ADD, node, mul());
-		} else if (consume('-')) {
-			node = new_node(ND_SUB, node, mul());
+		if (consume("+")) {
+			node = new_binary(ND_ADD, node, mul());
+		} else if (consume("-")) {
+			node = new_binary(ND_SUB, node, mul());
+		} else {
+			return node;
+		}
+	}
+}
+
+Node *relational() {
+	Node *node = add();
+	for (;;) {
+		if (consume("<")) {
+			node = new_binary(ND_LT, node, add());
+		} else if (consume("<=")) {
+			node = new_binary(ND_LE, node, add());
+		} else if (consume(">")) {
+			node = new_binary(ND_LT, add(), node);
+		} else if (consume(">=")) {
+			node = new_binary(ND_LE, add(), node);
+		} else {
+			return node;
+		}
+	}
+}
+
+Node *equality() {
+	Node *node = relational();
+
+	for (;;) {
+		if (consume("==")) {
+			node = new_binary(ND_EQ, node, relational());
+		} else if (consume("!=")) {
+			node = new_binary(ND_NE, node, relational());
 		} else {
 			return node;
 		}
@@ -233,10 +301,10 @@ Node *expr() {
 }
 
 Node *and() {
-	Node *node = expr();
+	Node *node = equality();
 	for (;;) {
-		if (consume('&')) {
-			node = new_node(ND_AND, node, expr());
+		if (consume("&")) {
+			node = new_binary(ND_AND, node, equality());
 		} else {
 			return node;
 		}
@@ -246,8 +314,8 @@ Node *and() {
 Node *xor() {
 	Node *node = and();
 	for (;;) {
-		if (consume('^')) {
-			node = new_node(ND_XOR, node, and());
+		if (consume("^")) {
+			node = new_binary(ND_XOR, node, and());
 		} else {
 			return node;
 		}
@@ -257,12 +325,16 @@ Node *xor() {
 Node *or() {
 	Node *node = xor();
 	for (;;) {
-		if (consume('|')) {
-			node = new_node(ND_OR, node, xor());
+		if (consume("|")) {
+			node = new_binary(ND_OR, node, xor());
 		} else {
 			return node;
 		}
 	}
+}
+
+Node *expr() {
+	return or();
 }
 
 void generate(Node *node) {
@@ -299,6 +371,26 @@ void generate(Node *node) {
 			break;
 		case ND_XOR:
 			printf("	xor rax, rdi\n");
+			break;
+		case ND_EQ:
+			printf("	cmp rax, rdi\n");
+			printf("	sete al\n");
+			printf("	movzb rax, al\n");
+			break;
+		case ND_NE:
+			printf("	cmp rax, rdi\n");
+			printf("	setne al\n");
+			printf("	movzb rax, al\n");
+			break;
+		case ND_LT:
+			printf("	cmp rax, rdi\n");
+			printf("	setl al\n");
+			printf("	movzb rax, al\n");
+			break;
+		case ND_LE:
+			printf("	cmp rax, rdi\n");
+			printf("	setle al\n");
+			printf("	movzb rax, al\n");
 			break;
 	}
 	
