@@ -169,33 +169,34 @@ Node *new_node_num(int val) {
 }
 
 /*
- bs      = expr ('&' expr | '|' expr | '^' expr)*
- expr    = mul ('+' mul | '-' mul)
+ or      = xor ('|' xor)*
+ xor     = and ('^' and)*
+ and     = expr ('&' expr)*
+ expr    = mul ('+' mul | '-' mul)*
  mul     = primary ('*' primary | '/' primary)*
- primary = num | '(' bs ')'
+ primary = num | '(' or ')'
  */
 
 Node *primary();
 Node *mul();
 Node *expr();
-Node *bs();
+Node *and();
+Node *xor();
+Node *or();
 
 Node *primary() {
 	// 次トークンが '(' -> ')' になるはず
 	if (consume('(')) {
-		Node *node = bs();
+		Node *node = or();
 		expect_symbol(')');
-
 		return node;
 	}
-
 	// でないなら、数値になるはず
 	return new_node_num(expect_number());
 }
 
 Node *mul() {
 	Node *node = primary();
-
 	for (;;) {
 		if (consume('*')) {
 			node = new_node(ND_MUL, node, primary());
@@ -209,7 +210,6 @@ Node *mul() {
 
 Node *expr() {
 	Node *node = mul();
-
 	for (;;) {
 		if (consume('+')) {
 			node = new_node(ND_ADD, node, mul());
@@ -221,22 +221,39 @@ Node *expr() {
 	}
 }
 
-Node *bs() {
+Node *and() {
 	Node *node = expr();
-
 	for (;;) {
 		if (consume('&')) {
 			node = new_node(ND_AND, node, expr());
-		} else if (consume('|')) {
-			node = new_node(ND_OR, node, expr());
-		} else if (consume('^')) {
-			node = new_node(ND_XOR, node, expr());
 		} else {
 			return node;
 		}
 	}
 }
  
+Node *xor() {
+	Node *node = and();
+	for (;;) {
+		if (consume('^')) {
+			node = new_node(ND_XOR, node, and());
+		} else {
+			return node;
+		}
+	}
+}
+
+Node *or() {
+	Node *node = xor();
+	for (;;) {
+		if (consume('|')) {
+			node = new_node(ND_OR, node, xor());
+		} else {
+			return node;
+		}
+	}
+}
+
 void generate(Node *node) {
 	if (node->kind == ND_NUM) {
 		printf("	push %d\n", node->val);
@@ -286,7 +303,7 @@ int main(int argc, char *argv[]) {
 	// トークナイズしたのちに、パース
 	user_input = argv[1];
 	token = tokenize(user_input);
-	Node *node = bs();
+	Node *node = or();
 
 	// アセンブリ前半の出力
 	printf(".intel_syntax noprefix\n");
