@@ -64,6 +64,15 @@ bool consume(char op) {
 	return true;
 }
 
+// 次のトークンが記号の場合、トークンを進める。
+// それ以外の場合は、エラーを返す。
+void expect_symbol(char op) {
+	if (token->kind != TK_RESERVED || token->str[0] != op) {
+		error("Current operation is not'%c'.", op);
+	}
+	token = token->next;
+}
+
 // 次のトークンが数値の場合、トークンを進め、その値を返す。
 // それ以外ならば、エラーを返す。
 int expect_number() {
@@ -120,6 +129,47 @@ Token *tokenize(char *p) {
 	return head.next;
 }
 
+// 抽象構文木のノードの種類
+typedef enum {
+	ND_ADD, // +
+	ND_SUB, // -
+	ND_MUL, // *
+	ND_DIV, // /
+	ND_NUM, // 整数
+} NodeKind;
+
+typedef struct Node Node;
+
+// 抽象構文木のノードの型
+struct Node {
+	NodeKind kind;
+	Node *lhs;
+	Node *rhs;
+	int val;
+};
+
+Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
+	Node *node = calloc(1, sizeof(Node));
+	node->kind = kind;
+	node->lhs = lhs;
+	node->rhs = rhs;
+
+	return node;
+}
+
+Node *new_node_num(int val) {
+	Node *node = calloc(1, sizeof(Node));
+	node->kind = ND_NUM;
+	node->val = val;
+
+	return node;
+}
+
+Node *expr() {
+	Node *node = mul();
+
+	for (;;) {
+		if 		
 
 int main(int argc, char *argv[]) {
 	printf(".intel_syntax noprefix\n");
