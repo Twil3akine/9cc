@@ -110,7 +110,7 @@ Token *tokenize(char *p) {
 			continue;
 		}
 
-		if ((*p=='+') || (*p=='-') || (*p=='&') || (*p=='|') || (*p=='^')) {
+		if ((*p=='+') || (*p=='-') || (*p=='&') || (*p=='|') || (*p=='^') || (*p=='*') || (*p=='/') || (*p=='(') || (*p==')')) {
 			cur = new_token(TK_RESERVED, cur, p++);
 			continue;
 		}
@@ -135,6 +135,9 @@ typedef enum {
 	ND_SUB, // -
 	ND_MUL, // *
 	ND_DIV, // /
+	ND_AND, // &
+	ND_OR , // |
+	ND_XOR, // ^
 	ND_NUM, // 整数
 } NodeKind;
 
@@ -165,50 +168,138 @@ Node *new_node_num(int val) {
 	return node;
 }
 
+/*
+ bs      = expr ('&' expr | '|' expr | '^' expr)*
+ expr    = mul ('+' mul | '-' mul)
+ mul     = primary ('*' primary | '/' primary)*
+ primary = num | '(' bs ')'
+ */
+
+Node *primary();
+Node *mul();
+Node *expr();
+Node *bs();
+
+Node *primary() {
+	// 次トークンが '(' -> ')' になるはず
+	if (consume('(')) {
+		Node *node = bs();
+		expect_symbol(')');
+
+		return node;
+	}
+
+	// でないなら、数値になるはず
+	return new_node_num(expect_number());
+}
+
+Node *mul() {
+	Node *node = primary();
+
+	for (;;) {
+		if (consume('*')) {
+			node = new_node(ND_MUL, node, primary());
+		} else if (consume('/')) {
+			node = new_node(ND_DIV, node, primary());
+		} else {
+			return node;
+		}
+	}
+}
+
 Node *expr() {
 	Node *node = mul();
 
 	for (;;) {
-		if 		
+		if (consume('+')) {
+			node = new_node(ND_ADD, node, mul());
+		} else if (consume('-')) {
+			node = new_node(ND_SUB, node, mul());
+		} else {
+			return node;
+		}
+	}
+}
+
+Node *bs() {
+	Node *node = expr();
+
+	for (;;) {
+		if (consume('&')) {
+			node = new_node(ND_AND, node, expr());
+		} else if (consume('|')) {
+			node = new_node(ND_OR, node, expr());
+		} else if (consume('^')) {
+			node = new_node(ND_XOR, node, expr());
+		} else {
+			return node;
+		}
+	}
+}
+ 
+void generate(Node *node) {
+	if (node->kind == ND_NUM) {
+		printf("	push %d\n", node->val);
+		return;
+	}
+
+	generate(node->lhs);
+	generate(node->rhs);
+
+	printf("	pop rdi\n");
+	printf("	pop rax\n");
+
+	switch (node->kind) {
+		case ND_ADD:
+			printf("	add rax, rdi\n");
+			break;
+		case ND_SUB:
+			printf("	sub rax, rdi\n");
+			break;
+		case ND_MUL:
+			printf("	imul rax, rdi\n");
+			break;
+		case ND_DIV:
+			printf("	cqo\n");
+			printf("	idiv rdi\n");
+			break;
+		case ND_AND:
+			printf("	and rax, rdi\n");
+			break;
+		case ND_OR:
+			printf("	or rax, rdi\n");
+			break;
+		case ND_XOR:
+			printf("	xor rax, rdi\n");
+			break;
+	}
+	
+	printf("	push rax\n");
+}
 
 int main(int argc, char *argv[]) {
+	if (argc != 2) {
+		error("Number of arguments is not correctly.");
+		return 1;
+	}
+
+	// トークナイズしたのちに、パース
+	user_input = argv[1];
+	token = tokenize(user_input);
+	Node *node = bs();
+
+	// アセンブリ前半の出力
 	printf(".intel_syntax noprefix\n");
 	printf(".globl main\n");
 	printf("main:\n");
 
-	user_input = argv[1];
-	if (argc != 2) {
-		error_at(token->str, "Not corrently numbers of arguments.");
-		return 1;
-	}
+	// 抽象構文木を歩きながら、コード生成
+	generate(node);
 
-	// トークナイズ
-	token = tokenize(argv[1]);
-
-	printf("	mov rax, %d\n", expect_number());
-
-	while (!at_eof()) {
-		if (consume('+')) {
-			printf("	add rax, %d\n", expect_number());
-			continue;
-		} else if (consume('-')) {
-			printf("	sub	rax, %d\n", expect_number());
-			continue;
-		} else if (consume('&')) {
-			printf("	and rax, %d\n", expect_number());
-			continue;
-		} else if (consume('|')) {
-			printf("	or rax, %d\n", expect_number());
-			continue;
-		} else if (consume('^')) {
-			printf("	xor rax, %d\n", expect_number());
-			continue;
-		}
-
-		error_at(token->str, "Current token is not '%c'.", token->str[0]);
-	}
-
-	printf("	ret \n");
+	// スタックトップに式全体があるはずなので、
+	// RAX にロードして、関数の返り値にする。
+	printf("	pop rax\n");
+	printf("	ret\n");
 	printf(".section .note.GNU-stack, \"\", @progbits\n");
 
 	return 0;

@@ -1,0 +1,14 @@
+#!/bin/zsh
+
+make
+
+./9cc "${1}" > tmp.s
+
+echo "\n#----------"
+cat  tmp.s
+echo "#----------\n"
+
+cc -o tmp tmp.s
+echo "+--------+\n| result |\n+--------+"
+./tmp
+echo $?
