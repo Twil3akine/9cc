@@ -21,13 +21,9 @@ echo "\n単項(0~255)のコンパイル"
 assert 0 0
 assert 42 42
 
-echo "\n空白の内、足し引きの式"
-assert 21 "5+20-4"
-assert 48 "16+16+16-16+16"
-
-echo "\n空白が入った足し引きの式"
-assert 32 "16 + 16 - 0"
-assert 0 "1 + 50     -1-     50"
+echo "\n足し引きの式"
+assert 41 "12 + 34 - 5"
+assert 0 "6 + 6 - 6 - 6"
 
 echo "\nビット演算(&, |, ^)の式"
 assert 7 "4|3"
@@ -36,20 +32,25 @@ assert 3 "1^2"
 assert 7 "4^1|2&3"
 assert 2 "1&2^2"
 
-echo "\n掛け割りの式"
-assert 30 "5*6"
-assert 10 "2*5/5*10/2"
-assert 20 "3*3*3 / 3 / 3 /3*20"
-
 echo "\n四則演算の式"
-assert 17 "3*5+2"
-assert 12 "2/2+2-48/3+4/4+6*4"
-
-echo "\n括弧を含む式"
-assert 9 "(1+2)*(4-1)"
-assert 12 "(2+2)*(9/(1+2))/(6-5)"
+assert 37 "5*6+7"
+assert 135 "(7+8)*9"
 
 echo "\nビット演算が混じった式"
 assert 60 "2*(3&2)*(8|7)"
+
+echo "\n単項を含んだ式"
+assert 10 "-10+20"
+assert 10 "--10"
+assert 1 "--10/----10"
+assert 10 "--+10"
+
+echo "\n比較演算"
+assert 0 "0==1"
+assert 1 "2==2"
+assert 1 "10 > 1"
+assert 0 "10 < 1"
+assert 1 "10 >= 10"
+assert 1 "10 <= 10"
 
 echo "\nTEST OK"
