@@ -57,7 +57,7 @@ void error(char *fmt, ...) {
 
 // 次のトークンが期待している記号ならば、トークンを進めて
 // True を返し、それ以外ならば、False を返す。
-bool consume(char *op) {
+bool consume(Token *tok, char *op) {
 	if (token->kind != TK_RESERVED ||
 		  strlen(op) != token->len ||
 			memcmp(token->str, op, token->len)) {

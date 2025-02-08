@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -11,9 +12,9 @@
 
 // トークンの種類
 typedef enum {
-	TK_RESERVED,		// 記号
-	TK_NUM,					// 整数
-	TK_EOF,					// 入力の終了
+	TK_RESERVED,     // 記号
+	TK_NUM,          // 整数
+	TK_EOF,          // 入力の終了
 } TokenKind;
 
 // トークン型
@@ -28,9 +29,9 @@ struct Token {
 };
 
 void error_at(char *loc, char *fmt, ...);
-void error(char *fmt, ...);
+void error(Token *tok, char *fmt, ...);
 
-bool consume(char *op);
+bool consume(Token *tok, char *op);
 
 void expect_symbol(char *op);
 int expect_number();
