@@ -5,8 +5,8 @@
 void expect_symbol(Token *tok, char *op) {
 	if (tok->kind != TK_RESERVED ||
         strlen(op) != tok->len ||
-        memcmp(tok->str, op, tok->len)) {
-		error_at(tok->str, "expected \"%s\"", op);
+        memcmp(tok->loc, op, tok->len)) {
+		error_at(tok->loc, "expected \"%s\"", op);
 	}
 	tok = tok->next;
 }
@@ -15,7 +15,7 @@ void expect_symbol(Token *tok, char *op) {
 // それ以外ならば、エラーを返す。
 int expect_number(Token *tok) {
 	if (tok->kind != TK_NUM) {
-		error_at(tok->str, "Current token is not a number");
+		error_at(tok->loc, "Current token is not a number");
 	}
 	int val = tok->val;
 	tok = tok->next;

@@ -24,7 +24,7 @@ struct Token {
 	TokenKind kind;
 	Token *next;
 	int val;
-	char *str;
+	char *loc;
 	int len;
 };
 
@@ -39,7 +39,7 @@ int expect_number(Token *tok);
 
 bool at_eof();
 
-Token *new_token(TokenKind kind, Token *cur, char *str, int len);
+Token *new_token(TokenKind kind, char *start, char *end);
 
 bool startswith(char *p, char *q);
 
