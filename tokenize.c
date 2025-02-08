@@ -29,16 +29,31 @@ void error_at(char *loc, char *fmt, ...) {
 	exit(1);
 }
 
-// 次のトークンが期待している記号ならば、トークンを進めて
-// True を返し、それ以外ならば、False を返す。
-bool consume(Token *tok, char *op) {
-	if (tok->kind != TK_RESERVED ||
-        strlen(op) != tok->len ||
-		memcmp(tok->str, op, tok->len)) {
-		return false;
+static void verror_at(char *loc, char *fmt, va_list ap) {
+	int pos = loc - user_input;
+	fprintf(stderr, "%s\n", user_input);
+	fprintf(stderr, "%*s", pos, ""); // print pos spaces.
+	fprintf(stderr, "^ ");
+	vfprintf(stderr, fmt, ap);
+	fprintf(stderr, "\n");
+	exit(1);
+}
+
+void error_tok(Token *tok, char *fmt, ...) {
+	va_list ap;
+	va_start(ap, fmt);
+	verror_at(tok->str, fmt, ap);
+}
+
+bool equal(Token *tok, char *op) {
+	return memcmp(tok->str, op, tok->len) == 0 && op[tok->len] == '\0';
+}
+
+Token *skip(Token *tok, char *op) {
+	if (!equal(tok, op)) {
+		error_tok(tok, "expected '%s'", op);
 	}
-	tok = tok->next;
-	return true;
+	return tok->next;
 }
 
 Token *new_token(TokenKind kind, Token *cur, char *str, int len) {
@@ -46,7 +61,6 @@ Token *new_token(TokenKind kind, Token *cur, char *str, int len) {
 	tok->kind = kind;
 	tok->str = str;
 	tok->len = len;
-	cur->next = tok;
 
 	return tok;
 }
@@ -69,20 +83,20 @@ Token *tokenize(char *p) {
 		// 複数文字記号
 		if (startswith(p, "==") || startswith(p, "!=") ||
 			startswith(p, "<=") || startswith(p, ">=")) {
-			cur = new_token(TK_RESERVED, cur, p, 2);
-			p += 2;
+			cur = cur->next = new_token(TK_RESERVED, cur, p, 2);
+			p += cur->len;
 			continue;
 		}
 
 		// 単文字記号
 		if (strchr("+-*/()&|^<>", *p)) {
-			cur = new_token(TK_RESERVED, cur, p++, 1);
+			cur = cur->next = new_token(TK_RESERVED, cur, p++, 1);
 			continue;
 		}
 		
 		// 数字
 		if (isdigit(*p)) {
-			cur = new_token(TK_NUM, cur, p, 0);
+			cur = cur->next = new_token(TK_NUM, cur, p, 0);
 			char *q = p;
 			cur->val = strtol(p, &p, 10);
 			cur->len = p - q;
@@ -92,7 +106,7 @@ Token *tokenize(char *p) {
 		error_at(p, "Cannot Tokenize.");
 	}
 
-	new_token(TK_EOF, cur, p, 0);
+	cur = cur->next = new_token(TK_EOF, cur, p, 0);
 
 	return head.next;
 }

@@ -31,7 +31,8 @@ struct Token {
 void error_at(char *loc, char *fmt, ...);
 void error(char *fmt, ...);
 
-bool consume(Token *tok, char *op);
+bool equal(Token *tok, char *op);
+Token *skip(Token *tok, char *op);
 
 void expect_symbol(Token *tok, char *op);
 int expect_number(Token *tok);
@@ -97,7 +98,7 @@ Node *parse(Token *tok);
  generate.c
  */
 
-void expression(Node *node);
+static void expression(Node *node);
 void generate(Node *node);
 
 /*

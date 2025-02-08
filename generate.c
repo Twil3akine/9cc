@@ -1,13 +1,15 @@
 #include "9cc.h"
 
-void expression(Node *node) {
+static void expression(Node *node) {
 	if (node->kind == ND_NUM) {
 		printf("	push %d\n", node->val);
 		return;
 	}
 
-	generate(node->lhs);
-	generate(node->rhs);
+	expression(node->rhs);
+	printf("	push rax\n");
+	expression(node->lhs);
+	printf("	pop rdi\n");
 
 	printf("	pop rdi\n");
 	printf("	pop rax\n");
