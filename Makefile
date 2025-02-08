@@ -7,6 +7,9 @@ OBJS=$(SRCS:.c=.o)
 
 $(OBJS): 9cc.h
 
+debug: 9cc
+				gdb ./9cc
+
 test: 9cc 
 				./test
 
