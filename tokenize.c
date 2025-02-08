@@ -82,6 +82,7 @@ Token *tokenize(char *p) {
 	Token *cur = &head;
 
 	while (*p) {
+		// 空白
 		if (isspace(*p)) {
 			p++;
 			continue;

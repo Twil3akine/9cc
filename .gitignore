@@ -3,6 +3,7 @@
 tmp*
 a.out
 9cc
-git.log
+
+*.log
+*.backup
 .vscode
-9cc.backup
