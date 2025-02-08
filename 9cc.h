@@ -29,12 +29,12 @@ struct Token {
 };
 
 void error_at(char *loc, char *fmt, ...);
-void error(Token *tok, char *fmt, ...);
+void error(char *fmt, ...);
 
 bool consume(Token *tok, char *op);
 
-void expect_symbol(char *op);
-int expect_number();
+void expect_symbol(Token *tok, char *op);
+int expect_number(Token *tok);
 
 bool at_eof();
 
@@ -42,7 +42,7 @@ Token *new_token(TokenKind kind, Token *cur, char *str, int len);
 
 bool startswith(char *p, char *q);
 
-Token tokenize(char *p);
+Token *tokenize(char *p);
 
 /*
  parse.c
@@ -80,16 +80,18 @@ Node *new_binary(NodeKind kind, Node *lhs, Node *rhs);
 
 Node *new_num(int val);
 
-Node *primary();
-Node *unary();
-Node *mul();
-Node *add();
-Node *relational();
-Node *equality();
-Node *and();
-Node *xor();
-Node *or();
-Node *expr();
+static Node *primary();
+static Node *unary();
+static Node *mul();
+static Node *add();
+static Node *relational();
+static Node *equality();
+static Node *and();
+static Node *xor();
+static Node *or();
+static Node *expr();
+
+Node *parse(Token *tok);
 
 /*
  generate.c
