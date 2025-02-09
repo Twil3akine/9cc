@@ -96,12 +96,15 @@ static Node *mul(Token **rest, Token *tok) {
 	for (;;) {
 		if (equal(tok, "*")) {
 			node = new_binary(ND_MUL, node, unary(&tok, tok->next));
-		} else if (equal(tok, "/")) {
+			continue;
+		} 
+		if (equal(tok, "/")) {
 			node = new_binary(ND_DIV, node, unary(&tok, tok->next));
-		} else {
-            *rest = tok;
-			return node;
+			continue;
 		}
+
+		*rest = tok;
+		return node;
 	}
 }
 
@@ -110,12 +113,15 @@ static Node *add(Token **rest, Token *tok) {
 	for (;;) {
 		if (equal(tok, "+")) {
 			node = new_binary(ND_ADD, node, mul(&tok, tok->next));
-		} else if (equal(tok, "-")) {
-			node = new_binary(ND_SUB, node, mul(&tok, tok->next));
-		} else {
-            *rest = tok;
-			return node;
+			continue;
 		}
+		if (equal(tok, "-")) {
+			node = new_binary(ND_SUB, node, mul(&tok, tok->next));
+			continue;
+		}
+
+		*rest = tok;
+		return node;
 	}
 }
 
@@ -124,16 +130,23 @@ static Node *relational(Token **rest, Token *tok) {
 	for (;;) {
 		if (equal(tok, "<")) {
 			node = new_binary(ND_LT, node, add(&tok, tok->next));
-		} else if (equal(tok, "<=")) {
-			node = new_binary(ND_LE, node, add(&tok, tok->next));
-		} else if (equal(tok, ">")) {
-			node = new_binary(ND_LT, add(&tok, tok->next), node);
-		} else if (equal(tok, ">=")) {
-			node = new_binary(ND_LE, add(&tok, tok->next), node);
-		} else {
-            *rest = tok;
-			return node;
+			continue;
 		}
+		if (equal(tok, "<=")) {
+			node = new_binary(ND_LE, node, add(&tok, tok->next));
+			continue;
+		}
+		if (equal(tok, ">")) {
+			node = new_binary(ND_LT, add(&tok, tok->next), node);
+			continue;
+		}
+		if (equal(tok, ">=")) {
+			node = new_binary(ND_LE, add(&tok, tok->next), node);
+			continue;
+		}
+
+		*rest = tok;
+		return node;
 	}
 }
 
@@ -143,12 +156,15 @@ static Node *equality(Token **rest, Token *tok) {
 	for (;;) {
 		if (equal(tok, "==")) {
 			node = new_binary(ND_EQ, node, relational(&tok, tok->next));
-		} else if (equal(tok, "!=")) {
-			node = new_binary(ND_NE, node, relational(&tok, tok->next));
-		} else {
-            *rest = tok;
-			return node;
+			continue;
 		}
+		if (equal(tok, "!=")) {
+			node = new_binary(ND_NE, node, relational(&tok, tok->next));
+			continue;
+		}
+
+		*rest = tok;
+		return node;
 	}
 }
 
@@ -157,10 +173,11 @@ static Node *and(Token **rest, Token *tok) {
 	for (;;) {
 		if (equal(tok, "&")) {
 			node = new_binary(ND_AND, node, equality(&tok, tok->next));
-		} else {
-            *rest = tok;
-			return node;
+			continue;
 		}
+
+		*rest = tok;
+		return node;
 	}
 }
 
@@ -169,10 +186,11 @@ static Node *xor(Token **rest, Token *tok) {
 	for (;;) {
 		if (equal(tok, "^")) {
 			node = new_binary(ND_XOR, node, and(&tok, tok->next));
-		} else {
-            *rest = tok;
-			return node;
+			continue;
 		}
+
+		*rest = tok;
+		return node;
 	}
 }
 
@@ -181,10 +199,11 @@ static Node *or(Token **rest, Token *tok) {
 	for (;;) {
 		if (equal(tok, "|")) {
 			node = new_binary(ND_OR, node, xor(&tok, tok->next));
-		} else {
-            *rest = tok;
-			return node;
+			continue;
 		}
+
+		*rest = tok;
+		return node;
 	}
 }
 

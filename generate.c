@@ -7,9 +7,7 @@ static void expression(Node *node) {
 	}
 
 	expression(node->rhs);
-	printf("	push rax\n");
 	expression(node->lhs);
-	printf("	pop rdi\n");
 
 	printf("	pop rdi\n");
 	printf("	pop rax\n");

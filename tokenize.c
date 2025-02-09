@@ -59,7 +59,7 @@ Token *skip(Token *tok, char *op) {
 Token *new_token(TokenKind kind, char *start, char *end) {
 	Token *tok = calloc(1, sizeof(Token));
 	tok->kind = kind;
-	tok->loc = start;
+	tok->loc = &start[0];
 	tok->len = end - start;
 
 	return tok;
@@ -91,6 +91,7 @@ Token *tokenize(char *p) {
 		// 数字
 		if (isdigit(*p)) {
 			cur = cur->next = new_token(TK_NUM, p, p);
+			// printf("%s is digit.\n", cur->loc);
 			char *q = p;
 			cur->val = strtol(p, &p, 10);
 			cur->len = p - q;

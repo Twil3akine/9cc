@@ -8,6 +8,14 @@ int main(int argc, char *argv[]) {
     // 入力をトークン化する
     Token *tok = tokenize(argv[1]);
 
+    printf("\n--- Token ---\n");
+    Token *dum = tok;
+    while (dum->next != NULL) {
+        printf("%s", dum->loc);
+        dum = dum->next;
+    }
+    printf("\n--- ----- ---\n");
+
     // トークン化されたものから抽象構文木を作る
     Node *node = parse(tok);
 
