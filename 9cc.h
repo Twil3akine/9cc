@@ -34,9 +34,6 @@ void error(char *fmt, ...);
 bool equal(Token *tok, char *op);
 Token *skip(Token *tok, char *op);
 
-void expect_symbol(Token *tok, char *op);
-int expect_number(Token *tok);
-
 bool at_eof();
 
 Token *new_token(TokenKind kind, char *start, char *end);

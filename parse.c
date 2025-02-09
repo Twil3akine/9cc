@@ -1,29 +1,5 @@
 #include "9cc.h"
 
-// 次のトークンが記号の場合、トークンを進める。
-// それ以外の場合は、エラーを返す。
-void expect_symbol(Token *tok, char *op) {
-	if (tok->kind != TK_RESERVED ||
-        strlen(op) != tok->len ||
-        memcmp(tok->loc, op, tok->len)) {
-		error_at(tok->loc, "expected \"%s\"", op);
-	}
-	tok = tok->next;
-}
-
-// 次のトークンが数値の場合、トークンを進め、その値を返す。
-// それ以外ならば、エラーを返す。
-int expect_number(Token *tok) {
-	if (tok->kind != TK_NUM) {
-		error_at(tok->loc, "Current token is not a number");
-	}
-	int val = tok->val;
-	tok = tok->next;
-
-	return val;
-}
-
-
 Node *new_node(NodeKind kind) {
 	Node *node = calloc(1, sizeof(Node));
 	node->kind = kind;
@@ -35,6 +11,13 @@ Node *new_binary(NodeKind kind, Node *lhs, Node *rhs) {
 	Node *node = new_node(kind);
 	node->lhs = lhs;
 	node->rhs = rhs;
+
+	return node;
+}
+
+Node *new_unary(NodeKind kind, Node *expr) {
+	Node *node = new_node(kind);
+	node->lhs = expr;
 
 	return node;
 }
@@ -74,19 +57,25 @@ static Node *primary(Token **rest, Token *tok) {
 	// 次トークンが '(' -> ')' になるはず
 	if (equal(tok, "(")) {
 		Node *node = expr(&tok, tok->next);
-		expect_symbol(tok, ")");
-        *rest = tok->next;
+        *rest = skip(tok, ")");
+
 		return node;
 	}
 	// でないなら、数値になるはず
-	return new_num(expect_number(tok));
+	if (tok->kind == TK_NUM) {
+		Node *node = new_num(tok->val);
+		*rest = tok->next;
+
+		return node;
+	}
 }
 
 static Node *unary(Token **rest, Token *tok) {
 	if (equal(tok, "+")) {
 		return unary(rest, tok->next);
-	} else if (equal(tok, "-")) {
-		return new_binary(ND_SUB, new_num(0), unary(rest, tok->next));
+	}
+	if (equal(tok, "-")) {
+		return new_unary(ND_NEG, unary(rest, tok->next));
 	}
 	return primary(rest, tok);
 }
