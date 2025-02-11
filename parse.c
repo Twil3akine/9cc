@@ -30,7 +30,10 @@ Node *new_num(int val) {
 }
 
 /*
- expr       = or
+ program    = stmt*
+ stmt       = expr ';'
+ expr       = assign
+ assign     = or ('=' assign)?
  or         = xor ('|' xor)*
  xor        = and ('^' and)*
  and        = equality ('&' equality)*
@@ -51,6 +54,7 @@ static Node *equality(Token **rest, Token *tok);
 static Node *and(Token **rest, Token *tok);
 static Node *xor(Token **rest, Token *tok);
 static Node *or(Token **rest, Token *tok);
+static Node *expr_stmt(Token **rest, Token *tok);
 static Node *expr(Token **rest, Token *tok);
 
 static Node *primary(Token **rest, Token *tok) {
@@ -200,7 +204,24 @@ static Node *expr(Token **rest, Token *tok) {
 	return or(rest, tok);
 }
 
+static Node *expr_stmt(Token **rest, Token *tok) {
+	Node *node = new_unary(ND_STMT, expr(&tok, tok));
+
+	*rest = skip(tok, ";");
+	return node;
+}
+
+static Node *stmt(Token **rest, Token *tok) {
+	return expr_stmt(rest, tok);
+}
+
 Node *parse(Token *tok) {
-    Node *node = expr(&tok, tok);
-    return node;
+    Node head = {};
+	Node *cur = &head;
+
+	while (tok->kind != TK_EOF) {
+		cur = cur->next = stmt(&tok, tok);
+	}
+
+    return head.next;
 }

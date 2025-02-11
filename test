@@ -1,56 +1,58 @@
 #!/bin/zsh
 
 assert() {
-  expected="${1}"
-  input="${2}"
+  expected="${1}";
+  input="${2}";
 
   ./9cc "${input}" > tmp.s
   cc -o tmp tmp.s
   ./tmp
-  actual="$?"
+  actual="$?";
 
   if [ "${actual}" = "${expected}" ]; then
-    echo "${input} => ${actual}"
+    echo "${input} => ${actual}";
   else
-    echo "${input} => ${expected} expected, but got ${actual}"
+    echo "${input} => ${expected} expected, but got ${actual}";
     exit 1
   fi
 }
 
-echo "\n単項(0~255)のコンパイル"
-assert 0 0
-assert 42 42
+echo "\n単項(0~255)のコンパイル";
+assert 0 '0;'
+assert 42 '42;'
 
-echo "\n足し引きの式"
-assert 41 "12 + 34 - 5"
-assert 0 "6 + 6 - 6 - 6"
+echo "\n足し引きの式";
+assert 41 '12 + 34 - 5;'
+assert 0 '6 + 6 - 6 - 6;'
 
-echo "\nビット演算(&, |, ^)の式"
-assert 7 "4|3"
-assert 16 "31&16"
-assert 3 "1^2"
-assert 7 "4^1|2&3"
-assert 2 "1&2^2"
+echo "\nビット演算(&, |, ^)の式";
+assert 7 '4|3;'
+assert 16 '31&16;'
+assert 3 '1^2;'
+assert 7 '4^1|2&3;'
+assert 2 '1&2^2;'
 
-echo "\n四則演算の式"
-assert 37 "5*6+7"
-assert 135 "(7+8)*9"
+echo "\n四則演算の式";
+assert 37 '5*6+7;'
+assert 135 '(7+8)*9;'
 
-echo "\nビット演算が混じった式"
-assert 60 "2*(3&2)*(8|7)"
+echo "\nビット演算が混じった式";
+assert 60 '2*(3&2)*(8|7);'
 
-echo "\n単項を含んだ式"
-assert 10 "-10+20"
-assert 10 "--10"
-assert 1 "--10/----10"
-assert 10 "--+10"
+echo "\n単項を含んだ式";
+assert 10 '-10+20;'
+assert 10 '--10;'
+assert 1 '--10/----10;'
+assert 10 '--+10;'
 
-echo "\n比較演算"
-assert 0 "0==1"
-assert 1 "2==2"
-assert 1 "10 > 1"
-assert 0 "10 < 1"
-assert 1 "10 >= 10"
-assert 1 "10 <= 10"
+echo "\n比較演算";
+assert 0 '0==1;'
+assert 1 '2==2;'
+assert 1 '10 > 1;'
+assert 0 '10 < 1;'
+assert 1 '10 >= 10;'
+assert 1 '10 <= 10;'
 
-echo "\nTEST OK"
+assert 3 '1; 2; 3;'
+
+echo "\nTEST OK";

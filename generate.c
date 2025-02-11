@@ -56,13 +56,24 @@ static void expression(Node *node) {
 	// printf("	push rax\n");
 }
 
+static void gen_stmt(Node *node) {
+	if (node->kind == ND_STMT) {
+		expression(node->lhs);
+		return;
+	}
+
+	error("invalid statement");
+}
+
 void generate(Node *node) {
     // アセンブリ前半の出力
 	printf(".intel_syntax noprefix\n");
 	printf(".globl main\n");
 	printf("main:\n");
 
-    expression(node);
+    for (Node *n = node; n; n = n->next) {
+		gen_stmt(n);
+	}
 
     // スタックトップに式全体があるはずなので、
 	// RAX にロードして、関数の返り値にする。
