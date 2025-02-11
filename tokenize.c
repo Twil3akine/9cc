@@ -88,13 +88,6 @@ Token *tokenize(char *p) {
 			continue;
 		}
 
-		// 変数
-		if ('a' <= *p && *p <= 'z') {
-			cur = cur->next = new_token(TK_INDENT, p, p++);
-			cur->len = 1;
-			continue;
-		}
-
 		// 数字
 		if (isdigit(*p)) {
 			cur = cur->next = new_token(TK_NUM, p, p);
@@ -102,6 +95,13 @@ Token *tokenize(char *p) {
 			char *q = p;
 			cur->val = strtol(p, &p, 10);
 			cur->len = p - q;
+			continue;
+		}
+
+		// 変数
+		if ('a' <= *p && *p <= 'z') {
+			cur = cur->next = new_token(TK_IDENT, p, p+1);
+			p++;
 			continue;
 		}
 

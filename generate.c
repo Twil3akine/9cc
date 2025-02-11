@@ -1,20 +1,52 @@
 #include "9cc.h"
 
-static void expression(Node *node) {
-	if (node->kind == ND_NUM) {
-		printf("	mov rax, %d\n", node->val);
-		return;
-	}
-	if (node->kind == ND_NEG) {
-		expression(node->lhs);
-		printf("	neg rax\n");
+static void push(void) {
+	printf("	push rax\n");
+}
+
+static void pop(char *arg) {
+	printf("	pop %s\n", arg);
+}
+
+static void gen_addr(Node *node) {
+	if (node->kind == ND_LVAR) {
+		int offset = (node->name - 'a' + 1) * 8;
+		printf("	lea rax, [rbp-%d]\n", offset);
 		return;
 	}
 
-	expression(node->rhs);
-	printf("	push rax\n");
-	expression(node->lhs);
-	printf("	pop rdi\n");
+	error("not an lvalue");
+}
+
+static void gen_expr(Node *node) {
+	switch (node->kind) {
+		case ND_NUM:
+			printf("	mov rax, %d\n", node->val);
+			return;
+
+		case ND_NEG:
+			gen_expr(node->lhs);
+			printf("	neg rax\n");
+			return;
+
+		case ND_LVAR:
+			gen_addr(node);
+			printf("mov rax, [rax]\n");
+			return;
+
+		case ND_ASSIGN:
+			gen_addr(node->lhs);
+			push();
+			gen_expr(node->rhs);
+			pop("rdi");
+			printf("	mov [rdi], rax\n");
+			return;
+	}
+
+	gen_expr(node->rhs);
+	push();
+	gen_expr(node->lhs);
+	pop("rdi");
 
 	switch (node->kind) {
 		case ND_ADD:
@@ -49,7 +81,7 @@ static void expression(Node *node) {
 			else if (node->kind == ND_LT) printf("	setl al\n");
 			else if (node->kind == ND_LE) printf("	setle al\n");
 			
-            printf("	movzb rax, al\n");
+            printf("	movzx rax, al\n");
 			return;
 	}
 	
@@ -58,11 +90,11 @@ static void expression(Node *node) {
 
 static void gen_stmt(Node *node) {
 	if (node->kind == ND_STMT) {
-		expression(node->lhs);
+		gen_expr(node->lhs);
 		return;
 	}
 
-	error("invalid statement");
+	error("invalid statement\n");
 }
 
 void generate(Node *node) {
@@ -71,13 +103,18 @@ void generate(Node *node) {
 	printf(".globl main\n");
 	printf("main:\n");
 
+	printf("	push rbp\n");
+	printf("	mov rbp, rsp\n");
+	printf("	sub rsp, 208\n");
+
     for (Node *n = node; n; n = n->next) {
 		gen_stmt(n);
 	}
 
     // スタックトップに式全体があるはずなので、
 	// RAX にロードして、関数の返り値にする。
-	// printf("	pop rax\n");
+	printf("	mov rsp, rbp\n");
+	printf("	pop rbp\n");
 	printf("	ret\n");
 	printf(".section .note.GNU-stack, \"\", @progbits\n");
 }

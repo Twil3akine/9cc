@@ -55,4 +55,8 @@ assert 1 '10 <= 10;'
 
 assert 3 '1; 2; 3;'
 
+assert 3 'a=3; a;'
+assert 8 'a=5; z=3; a+z;'
+assert 18 'a=b=c=3; (a+b)*c;'
+
 echo "\nTEST OK";

@@ -13,7 +13,7 @@
 // トークンの種類
 typedef enum {
 	TK_RESERVED,     // 記号
-	TK_INDENT,       // 識別子
+	TK_IDENT,       // 識別子
 	TK_NUM,          // 整数
 	TK_EOF,          // 入力の終了
 } TokenKind;
@@ -75,6 +75,7 @@ struct Node {
 	Node *next;
 	Node *lhs;
 	Node *rhs;
+	char name;
 	int val;
 };
 
@@ -104,7 +105,7 @@ Node *parse(Token *tok);
  generate.c
  */
 
-static void expression(Node *node);
+static void gen_expr(Node *node);
 void generate(Node *node);
 
 /*

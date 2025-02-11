@@ -29,6 +29,13 @@ Node *new_num(int val) {
 	return node;
 }
 
+Node *new_var_node(char name) {
+	Node *node = new_node(ND_LVAR);
+	node->name = name;
+
+	return node;
+}
+
 /*
  program    = stmt*
  stmt       = expr ';'
@@ -54,6 +61,7 @@ static Node *equality(Token **rest, Token *tok);
 static Node *and(Token **rest, Token *tok);
 static Node *xor(Token **rest, Token *tok);
 static Node *or(Token **rest, Token *tok);
+static Node *assign(Token **rest, Token *tok);
 static Node *expr_stmt(Token **rest, Token *tok);
 static Node *expr(Token **rest, Token *tok);
 
@@ -65,6 +73,14 @@ static Node *primary(Token **rest, Token *tok) {
 
 		return node;
 	}
+
+	if (tok->kind == TK_IDENT) {
+		Node *node = new_var_node(*tok->loc);
+		*rest = tok->next;
+		
+		return node;
+	}
+
 	// でないなら、数値になるはず
 	if (tok->kind == TK_NUM) {
 		Node *node = new_num(tok->val);
@@ -200,8 +216,19 @@ static Node *or(Token **rest, Token *tok) {
 	}
 }
 
+static Node *assign(Token **rest, Token *tok) {
+	Node *node = or(&tok, tok);
+
+	if (equal(tok, "=")) {
+		node = new_binary(ND_ASSIGN, node, assign(&tok, tok->next));
+	}
+
+	*rest = tok;
+	return node;
+}
+
 static Node *expr(Token **rest, Token *tok) {
-	return or(rest, tok);
+	return assign(rest, tok);
 }
 
 static Node *expr_stmt(Token **rest, Token *tok) {
