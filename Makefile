@@ -26,4 +26,7 @@ commit:
 push:
 				git checkout main && git merge develop && git push origin main develop && git checkout develop
 
+log:
+				git log --oneline --graph --all
+
 .PHONY: test clean
