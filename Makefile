@@ -20,4 +20,10 @@ check: 9cc
 clean:
 				rm -f 9cc *.o *~ tmp*
 
+commit:
+				git add . && git status && sleep 2 && git commit
+
+push:
+				git checkout master && git merge develop && git push origin master develop && git checkout develop
+
 .PHONY: test clean
