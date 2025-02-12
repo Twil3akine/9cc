@@ -59,14 +59,22 @@ Token *skip(Token *tok, char *op) {
 Token *new_token(TokenKind kind, char *start, char *end) {
 	Token *tok = calloc(1, sizeof(Token));
 	tok->kind = kind;
-	tok->loc = &start[0];
+	tok->loc = start;
 	tok->len = end - start;
 
 	return tok;
 }
 
 bool startswith(char *p, char *q) {
-	return memcmp(p, q, strlen(q)) == 0;
+	return strncmp(p, q, strlen(q)) == 0;
+}
+
+bool is_ident1(char c) {
+	return (('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || (c == '_'));
+}
+
+bool is_ident2(char c) {
+	return (is_ident1(c) || ('0' <= c && c <= '9'));
 }
 
 static int read_punct(char *p) {
@@ -91,7 +99,6 @@ Token *tokenize(char *p) {
 		// 数字
 		if (isdigit(*p)) {
 			cur = cur->next = new_token(TK_NUM, p, p);
-			// printf("%s is digit.\n", cur->loc);
 			char *q = p;
 			cur->val = strtol(p, &p, 10);
 			cur->len = p - q;
@@ -99,9 +106,10 @@ Token *tokenize(char *p) {
 		}
 
 		// 変数
-		if ('a' <= *p && *p <= 'z') {
-			cur = cur->next = new_token(TK_IDENT, p, p+1);
-			p++;
+		if (is_ident1(*p)) {
+			char *start = p;
+			while (is_ident2(*(++p)));
+			cur = cur->next = new_token(TK_IDENT, start, p);
 			continue;
 		}
 

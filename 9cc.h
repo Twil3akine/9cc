@@ -6,6 +6,25 @@
 #include <stdlib.h>
 #include <string.h>
 
+typedef struct Node Node;
+typedef struct Token Token;
+typedef struct LVar LVar;
+typedef struct Function Function;
+
+// local variable
+struct LVar {
+	LVar *next;
+	char *name;
+	int offset;
+};
+
+// function
+struct Function {
+	Node *body;
+	LVar *locals;
+	int stack_size;
+};
+
 /*
  tokenize.c
  */
@@ -19,8 +38,6 @@ typedef enum {
 } TokenKind;
 
 // トークン型
-typedef struct Token Token;
-
 struct Token {
 	TokenKind kind;
 	Token *next;
@@ -68,14 +85,12 @@ typedef enum {
 } NodeKind;
 
 // 抽象構文木のノードの型
-typedef struct Node Node;
-
 struct Node {
 	NodeKind kind;
 	Node *next;
 	Node *lhs;
 	Node *rhs;
-	char name;
+	LVar *var;
 	int val;
 };
 
@@ -85,28 +100,12 @@ Node *new_binary(NodeKind kind, Node *lhs, Node *rhs);
 
 Node *new_num(int val);
 
-static Node *primary();
-static Node *unary();
-static Node *mul();
-static Node *add();
-static Node *relational();
-static Node *equality();
-static Node *and();
-static Node *xor();
-static Node *or();
-static Node *assign();
-static Node *expr();
-static Node *stmt();
-static void program();
-
-Node *parse(Token *tok);
+Function *parse(Token *tok);
 
 /*
  generate.c
  */
-
-static void gen_expr(Node *node);
-void generate(Node *node);
+void generate(Function *prog);
 
 /*
  main.c

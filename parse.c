@@ -1,5 +1,7 @@
 #include "9cc.h"
 
+LVar *locals;
+
 Node *new_node(NodeKind kind) {
 	Node *node = calloc(1, sizeof(Node));
 	node->kind = kind;
@@ -29,11 +31,27 @@ Node *new_num(int val) {
 	return node;
 }
 
-Node *new_var_node(char name) {
+Node *new_var_node(LVar *var) {
 	Node *node = new_node(ND_LVAR);
-	node->name = name;
+	node->var = var;
 
 	return node;
+}
+
+LVar *new_lvar(char *name) {
+	LVar *var = calloc(1, sizeof(LVar));
+	var->name = name;
+	var->next = locals;
+	locals = var;
+
+	return var;
+}
+
+static LVar *find_var(Token *tok) {
+	for (LVar *var = locals; var; var = var->next) {
+		if (strlen(var->name) == tok->len && !strncmp(tok->loc, var->name, tok->len)) return var;
+	}
+	return NULL;
 }
 
 /*
@@ -75,10 +93,11 @@ static Node *primary(Token **rest, Token *tok) {
 	}
 
 	if (tok->kind == TK_IDENT) {
-		Node *node = new_var_node(*tok->loc);
+		LVar *var = find_var(tok);
+		if (!var) var = new_lvar(strndup(tok->loc, tok->len));
 		*rest = tok->next;
 		
-		return node;
+		return new_var_node(var);
 	}
 
 	// でないなら、数値になるはず
@@ -242,7 +261,7 @@ static Node *stmt(Token **rest, Token *tok) {
 	return expr_stmt(rest, tok);
 }
 
-Node *parse(Token *tok) {
+Function *parse(Token *tok) {
     Node head = {};
 	Node *cur = &head;
 
@@ -250,5 +269,9 @@ Node *parse(Token *tok) {
 		cur = cur->next = stmt(&tok, tok);
 	}
 
-    return head.next;
+	Function *prog = calloc(1, sizeof(Function));
+	prog->body = head.next;
+	prog->locals = locals;
+
+    return prog;
 }
