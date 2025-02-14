@@ -32,8 +32,9 @@ struct Function {
 
 // トークンの種類
 typedef enum {
+	TK_RETURN,       // return
 	TK_RESERVED,     // 記号
-	TK_IDENT,       // 識別子
+	TK_IDENT,        // 識別子
 	TK_NUM,          // 整数
 	TK_EOF,          // 入力の終了
 } TokenKind;
@@ -83,6 +84,7 @@ typedef enum {
 	ND_ASSIGN, // =
 	ND_LVAR,   // 変数
 	ND_NUM,    // 整数
+	ND_RETURN  // return
 } NodeKind;
 
 // 抽象構文木のノードの型

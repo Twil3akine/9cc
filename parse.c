@@ -56,7 +56,7 @@ static LVar *find_var(Token *tok) {
 
 /*
  program    = stmt*
- stmt       = expr ';'
+ stmt       = expr ';' | "return" expr ";"
  expr       = assign
  assign     = or ('=' assign)?
  or         = xor ('|' xor)*
@@ -258,6 +258,13 @@ static Node *expr_stmt(Token **rest, Token *tok) {
 }
 
 static Node *stmt(Token **rest, Token *tok) {
+	if (equal(tok, "return")) {
+		Node *node = new_unary(ND_RETURN, expr(&tok, tok->next));
+		*rest = skip(tok, ";");
+
+		return node;
+	}
+
 	return expr_stmt(rest, tok);
 }
 
